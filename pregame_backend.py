@@ -7,7 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# CORS für deine GitHub-Pages Website erlauben
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,7 +16,7 @@ app.add_middleware(
 )
 
 DB_FILE = "kombi_database.db"
-API_KEY = "1c6dd087a5bcd9d9cf78cb286d7cfa"  # Dein API-Key
+API_KEY = "1c6dd087a5bcd9d9cf78cb286d7cfa"
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -47,8 +46,6 @@ def init_db():
     conn.close()
 
 def fetch_live_data_from_api():
-    """Holt echte Pflichtspiele von api-sports.io mit automatischem Fallback"""
-    today_str = datetime.now().strftime("%Y-%m-%d")
     headers = {
         'x-rapidapi-key': API_KEY,
         'x-rapidapi-host': 'v3.football.api-sports.io'
@@ -57,24 +54,16 @@ def fetch_live_data_from_api():
     fixtures = []
     
     try:
-        # 1. Versuch: Spiele für den heutigen Tag abrufen
-        url = f"https://v3.football.api-sports.io/fixtures?date={today_str}"
+        # Wir holen direkt die nächsten anstehenden Pflichtspiele über den Standard-Endpoint
+        url = "https://v3.football.api-sports.io/fixtures?next=15"
         response = requests.get(url, headers=headers)
         data = response.json()
         fixtures = data.get("response", [])
 
-        # 2. Fallback: Wenn heute keine Spiele laufen, die nächsten echten Pflichtspiele laden
-        if not fixtures:
-            print(f"Keine Spiele für {today_str} gefunden. Lade nächste kommende Spiele...")
-            fallback_url = "https://v3.football.api-sports.io/fixtures?next=20"
-            fb_response = requests.get(fallback_url, headers=headers)
-            fb_data = fb_response.json()
-            fixtures = fb_data.get("response", [])
-
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
 
-        # Alte Daten bereinigen
+        # Alte Daten löschen
         cursor.execute("DELETE FROM matches")
 
         for fix in fixtures:
@@ -86,7 +75,7 @@ def fetch_live_data_from_api():
             home = fix["teams"]["home"]["name"]
             away = fix["teams"]["away"]["name"]
 
-            # Echte Team- und Ligadaten in die Datenbank schreiben
+            # Echte Daten in die DB schreiben
             cursor.execute("""
                 INSERT OR REPLACE INTO matches VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
@@ -95,7 +84,7 @@ def fetch_live_data_from_api():
             ))
         conn.commit()
         conn.close()
-        print(f"Datenbank erfolgreich mit {len(fixtures)} echten Spielen aktualisiert!")
+        print(f"Erfolgreich {len(fixtures)} echte Spiele geladen!")
     except Exception as e:
         print(f"Fehler beim Abrufen der API-Daten: {e}")
 
