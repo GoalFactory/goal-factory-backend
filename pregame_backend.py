@@ -2,7 +2,6 @@ import os
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime
 
 app = FastAPI()
 
@@ -23,24 +22,15 @@ def get_kombi_data():
     }
     
     try:
-        # Wir holen das exakte heutige Datum dynamisch im Format YYYY-MM-DD
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        
-        # Offizieller Standard-Endpunkt für den heutigen Tag
-        url = f"https://v3.football.api-sports.io/fixtures?date={today_str}"
+        url = "https://v3.football.api-sports.io/fixtures?date=2026-09-16"
         response = requests.get(url, headers=headers)
         data = response.json()
         
-        print("API Status & Ergebnisse:", data.get("results"))
+        print("API Status-Code:", response.status_code)
+        print("API Ergebnisse:", data.get("results"))
+        
         fixtures = data.get("response", [])
         
-        # Sollte heute um diese Uhrzeit absolut gar kein Spiel in der API sein, 
-        # nehmen wir den universellen Endpunkt für die nächsten anstehenden Partien
-        if not fixtures:
-            url_next = "https://v3.football.api-sports.io/fixtures?next=20"
-            resp_next = requests.get(url_next, headers=headers)
-            fixtures = resp_next.json().get("response", [])
-
         results = []
         for i, fix in enumerate(fixtures):
             match_id = str(fix["fixture"]["id"])
@@ -51,7 +41,6 @@ def get_kombi_data():
             home = fix["teams"]["home"]["name"]
             away = fix["teams"]["away"]["name"]
             
-            # Intelligenter Algorithmus für realistische Wahrscheinlichkeiten
             seed_val = (i * 13) % 25
             prob_o25 = 65 + seed_val
             prob_btts = 58 + (seed_val % 18)
@@ -81,7 +70,7 @@ def get_kombi_data():
         return results
 
     except Exception as e:
-        print("Fehler beim Abruf:", e)
+        print("Kritischer Fehler im Backend:", e)
         
     return []
 
