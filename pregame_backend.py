@@ -27,10 +27,10 @@ def get_kombi_data():
     try:
         all_events = []
         
-        # 1. Wir holen das aktuelle Datum (heute) im Format YYYY-MM-DD
+        # 1. Aktuelles Datum im Format YYYY-MM-DD holen
         today_str = datetime.now().strftime("%Y-%m-%d")
         
-        # Endpunkt laut Doku: Schedule Day (eventsday.php?d=...)
+        # Endpunkt: Schedule Day (eventsday.php?d=...)
         url_day = f"{BASE_URL}/eventsday.php?d={today_str}"
         response_day = requests.get(url_day)
         data_day = response_day.json()
@@ -39,7 +39,7 @@ def get_kombi_data():
         if events_day:
             all_events.extend(events_day)
             
-        # 2. Wenn heute direkt keine Events gelistet sind, holen wir die nächsten Spiele der Top-Ligen
+        # 2. Wenn heute keine Events gelistet sind, holen wir die nächsten Spiele der Top-Ligen
         # 4328 = Premier League, 4331 = Bundesliga, 4332 = Serie A, 4335 = La Liga
         if not all_events:
             league_ids = [4328, 4331, 4332, 4335]
@@ -88,7 +88,7 @@ def get_kombi_data():
                 "prob_team_goal": 80,
                 "fake_fav_team": home,
                 "odd_fake_fav": 2.10,
-                "fake_fav_reason": f"TheSportsDB Doku-Abruf: {home} vs {away}"
+                "fake_fav_reason": f"TheSportsDB: {home} vs {away}"
             })
             
         return results
@@ -99,4 +99,5 @@ def get_kombi_data():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("pregame_backend:app", host="127.0.0.1", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("pregame_backend:app", host="0.0.0.0", port=port)
