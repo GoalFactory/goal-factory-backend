@@ -15,7 +15,8 @@ app.add_middleware(
 )
 
 DB_FILE = "kombi_database.db"
-API_KEY = "1c6dd087a5bcd9d9cf78cb286d7cfa"
+# Dein neuer, korrekter API-Key aus dem Screenshot:
+API_KEY = "91bc6d8c20c7cb08624f8563860e416e"
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -45,19 +46,17 @@ def init_db():
     conn.close()
 
 def fetch_and_store_data():
-    """Zieht echte Pflichtspiele über den stabilen RapidAPI-Pfad von api-sports"""
+    """Zieht echte Pflichtspiele mit dem neuen API-Key"""
     headers = {
-        'x-rapidapi-key': API_KEY,
-        'x-rapidapi-host': 'v3.football.api-sports.io'
+        'x-apisports-key': API_KEY
     }
     
     try:
-        # Wir rufen die nächsten echten Pflichtspiele ab
         url = "https://v3.football.api-sports.io/fixtures?next=15"
         response = requests.get(url, headers=headers)
         data = response.json()
         
-        print("API Response:", data)
+        print("API Antwort erhalten:", data.get("results"))
         fixtures = data.get("response", [])
 
         if fixtures:
@@ -78,7 +77,7 @@ def fetch_and_store_data():
                     INSERT OR REPLACE INTO matches VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     match_id, time, country, league, home, away,
-                    1.75, 78, 65, 82, 45, home, 1.35, 80, home, 2.10, "Echte Pflichtspiel-Daten"
+                    1.75, 78, 65, 82, 45, home, 1.35, 80, home, 2.10, "Echte API-Pflichtspiel-Daten"
                 ))
             conn.commit()
             conn.close()
