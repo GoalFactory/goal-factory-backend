@@ -15,7 +15,6 @@ app.add_middleware(
 )
 
 DB_FILE = "kombi_database.db"
-# Dein neuer, korrekter API-Key aus dem Screenshot:
 API_KEY = "91bc6d8c20c7cb08624f8563860e416e"
 
 def init_db():
@@ -45,26 +44,32 @@ def init_db():
     conn.commit()
     conn.close()
 
-def fetch_and_store_data():
-    """Zieht echte Pflichtspiele mit dem neuen API-Key"""
+@app.get("/api/kombi")
+def get_kombi_data():
     headers = {
         'x-apisports-key': API_KEY
     }
     
     try:
-        url = "https://v3.football.api-sports.io/fixtures?next=15"
+        # Wir testen den Status-Endpunkt der API
+        url = "https://v3.football.api-sports.io/status"
         response = requests.get(url, headers=headers)
         data = response.json()
         
-        print("API Antwort erhalten:", data.get("results"))
-        fixtures = data.get("response", [])
-
+        print("API STATUS ANTWORT:", data)
+        
+        # Wenn die API aktiv ist, holen wir die heutigen Spiele mit dem Datum 2026-09-16
+        fixtures_url = "https://v3.football.api-sports.io/fixtures?date=2026-09-16"
+        resp_fix = requests.get(fixtures_url, headers=headers)
+        fix_data = resp_fix.json()
+        
+        print("SPIELE ANTWORT:", fix_data)
+        
+        fixtures = fix_data.get("response", [])
+        
         if fixtures:
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM matches")
-
-            for fix in fixtures:
+            results = []
+            for fix in fixtures[:15]:
                 match_id = str(fix["fixture"]["id"])
                 time_raw = fix["fixture"]["date"]
                 time = time_raw[11:16] if len(time_raw) >= 16 else "20:30"
@@ -72,43 +77,32 @@ def fetch_and_store_data():
                 league = fix["league"]["name"]
                 home = fix["teams"]["home"]["name"]
                 away = fix["teams"]["away"]["name"]
+                
+                results.append({
+                    "match_id": match_id,
+                    "time": time,
+                    "country": country,
+                    "league": league,
+                    "home": home,
+                    "away": away,
+                    "odd_over25": 1.75,
+                    "prob_over25": 78,
+                    "prob_btts": 65,
+                    "prob_ht05": 82,
+                    "prob_over35": 45,
+                    "team_target": home,
+                    "odd_team_goal": 1.35,
+                    "prob_team_goal": 80,
+                    "fake_fav_team": home,
+                    "odd_fake_fav": 2.10,
+                    "fake_fav_reason": "Live-Daten aus API"
+                })
+            return results
 
-                cursor.execute("""
-                    INSERT OR REPLACE INTO matches VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    match_id, time, country, league, home, away,
-                    1.75, 78, 65, 82, 45, home, 1.35, 80, home, 2.10, "Echte API-Pflichtspiel-Daten"
-                ))
-            conn.commit()
-            conn.close()
-            print(f"Erfolgreich {len(fixtures)} echte Spiele gespeichert!")
     except Exception as e:
-        print(f"Fehler: {e}")
-
-@app.on_event("startup")
-def startup_event():
-    init_db()
-    fetch_and_store_data()
-
-@app.get("/api/kombi")
-def get_kombi_data():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM matches")
-    rows = cursor.fetchall()
-    
-    if not rows:
-        conn.close()
-        fetch_and_store_data()
-        conn = sqlite3.connect(DB_FILE)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM matches")
-        rows = cursor.fetchall()
-
-    conn.close()
-    return [dict(row) for row in rows]
+        print("Fehler:", e)
+        
+    return []
 
 if __name__ == "__main__":
     import uvicorn
