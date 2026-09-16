@@ -27,33 +27,25 @@ def get_kombi_data():
         all_events = []
         today_str = datetime.now().strftime("%Y-%m-%d")
         
-        # 1. Events des heutigen Tages abrufen
-        url_day = f"{BASE_URL}/eventsday.php?d={today_str}"
-        response_day = requests.get(url_day)
-        data_day = response_day.json()
+        # Wir fragen direkt die nächsten anstehenden Spiele der wichtigsten Fußball-Ligen ab:
+        # 4328 = Premier League, 4331 = Bundesliga, 4332 = Serie A, 4335 = La Liga, 4346 = MLS
+        league_ids = [4328, 4331, 4332, 4335, 4346]
         
-        events_day = data_day.get("events", [])
-        if events_day:
-            all_events.extend(events_day)
-            
-        # 2. Fallback auf Top-Ligen, falls heute nichts da ist
-        if not all_events:
-            league_ids = [4328, 4331, 4332, 4335]
-            for lid in league_ids:
-                url_next = f"{BASE_URL}/eventsnextleague.php?id={lid}"
-                response_next = requests.get(url_next)
-                data_next = response_next.json()
-                events_next = data_next.get("events", [])
-                if events_next:
-                    all_events.extend(events_next)
+        for lid in league_ids:
+            url_next = f"{BASE_URL}/eventsnextleague.php?id={lid}"
+            response_next = requests.get(url_next)
+            data_next = response_next.json()
+            events_next = data_next.get("events", [])
+            if events_next:
+                all_events.extend(events_next)
 
         if not all_events:
             return []
 
         results = []
         for i, ev in enumerate(all_events):
-            # WICHTIG: Nur Fußball/Soccer zulassen, Baseball & Co. komplett ignorieren!
-            sport_type = ev.get("strSport", "")
+            # Sicherheitshalber prüfen, ob es sich um Fußball handelt
+            sport_type = ev.get("strSport", "Soccer")
             if sport_type != "Soccer":
                 continue
 
