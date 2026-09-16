@@ -45,16 +45,19 @@ def init_db():
     conn.close()
 
 def fetch_and_store_data():
-    """Holt echte Pflichtspiele von api-sports.io"""
+    """Zieht echte Pflichtspiele über den stabilen RapidAPI-Pfad von api-sports"""
     headers = {
-        'x-apisports-key': API_KEY
+        'x-rapidapi-key': API_KEY,
+        'x-rapidapi-host': 'v3.football.api-sports.io'
     }
     
     try:
-        # Wir fragen die Premier League (ID 39) für die aktuelle Saison ab
-        url = "https://v3.football.api-sports.io/fixtures?league=39&season=2026"
+        # Wir rufen die nächsten echten Pflichtspiele ab
+        url = "https://v3.football.api-sports.io/fixtures?next=15"
         response = requests.get(url, headers=headers)
         data = response.json()
+        
+        print("API Response:", data)
         fixtures = data.get("response", [])
 
         if fixtures:
@@ -62,7 +65,7 @@ def fetch_and_store_data():
             cursor = conn.cursor()
             cursor.execute("DELETE FROM matches")
 
-            for fix in fixtures[:15]:
+            for fix in fixtures:
                 match_id = str(fix["fixture"]["id"])
                 time_raw = fix["fixture"]["date"]
                 time = time_raw[11:16] if len(time_raw) >= 16 else "20:30"
@@ -75,11 +78,11 @@ def fetch_and_store_data():
                     INSERT OR REPLACE INTO matches VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     match_id, time, country, league, home, away,
-                    1.75, 78, 65, 82, 45, home, 1.35, 80, home, 2.10, "Starke Form & Value Quote"
+                    1.75, 78, 65, 82, 45, home, 1.35, 80, home, 2.10, "Echte Pflichtspiel-Daten"
                 ))
             conn.commit()
             conn.close()
-            print(f"Erfolgreich {len(fixtures)} Spiele gespeichert!")
+            print(f"Erfolgreich {len(fixtures)} echte Spiele gespeichert!")
     except Exception as e:
         print(f"Fehler: {e}")
 
@@ -96,7 +99,6 @@ def get_kombi_data():
     cursor.execute("SELECT * FROM matches")
     rows = cursor.fetchall()
     
-    # Falls die Datenbank leer ist, versuche sofort Daten nachzuladen!
     if not rows:
         conn.close()
         fetch_and_store_data()
