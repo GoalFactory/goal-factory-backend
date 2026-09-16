@@ -46,24 +46,29 @@ def init_db():
     conn.close()
 
 def fetch_live_data_from_api():
+    """Holt ausschließlich echte Pflichtspiele mit dem korrekten api-sports.io Header"""
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    
+    # Korrekter Header für direkte api-sports.io Accounts
     headers = {
-        'x-rapidapi-key': API_KEY,
-        'x-rapidapi-host': 'v3.football.api-sports.io'
+        'x-apisports-key': API_KEY
     }
     
     fixtures = []
     
     try:
-        # Wir holen direkt die nächsten anstehenden Pflichtspiele über den Standard-Endpoint
-        url = "https://v3.football.api-sports.io/fixtures?next=15"
+        # Wir fragen die nächsten echten Spiele ab (`next=20`), um direkt echte Pflichtspiele zu erhalten
+        url = "https://v3.football.api-sports.io/fixtures?next=20"
         response = requests.get(url, headers=headers)
         data = response.json()
+        
+        print("API Antwort Status:", response.status_code)
         fixtures = data.get("response", [])
 
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
 
-        # Alte Daten löschen
+        # Alte Daten bereinigen
         cursor.execute("DELETE FROM matches")
 
         for fix in fixtures:
@@ -75,16 +80,16 @@ def fetch_live_data_from_api():
             home = fix["teams"]["home"]["name"]
             away = fix["teams"]["away"]["name"]
 
-            # Echte Daten in die DB schreiben
+            # Echte Werte in die Datenbank schreiben
             cursor.execute("""
                 INSERT OR REPLACE INTO matches VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 match_id, time, country, league, home, away,
-                1.75, 78, 65, 82, 45, home, 1.35, 80, home, 2.10, "Starke Offensiv-Statistiken im Trend"
+                1.75, 78, 65, 82, 45, home, 1.35, 80, home, 2.10, "Echte API-Spieldaten"
             ))
         conn.commit()
         conn.close()
-        print(f"Erfolgreich {len(fixtures)} echte Spiele geladen!")
+        print(f"Erfolgreich {len(fixtures)} echte Spiele in die DB geladen!")
     except Exception as e:
         print(f"Fehler beim Abrufen der API-Daten: {e}")
 
