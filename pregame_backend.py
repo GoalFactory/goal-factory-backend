@@ -14,7 +14,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Offizieller Free Key aus der TheSportsDB-Dokumentation
 API_KEY = "123"
 BASE_URL = f"https://www.thesportsdb.com/api/v1/json/{API_KEY}"
 
@@ -26,11 +25,9 @@ def home_route():
 def get_kombi_data():
     try:
         all_events = []
-        
-        # 1. Aktuelles Datum im Format YYYY-MM-DD holen
         today_str = datetime.now().strftime("%Y-%m-%d")
         
-        # Endpunkt: Schedule Day (eventsday.php?d=...)
+        # 1. Events des heutigen Tages abrufen
         url_day = f"{BASE_URL}/eventsday.php?d={today_str}"
         response_day = requests.get(url_day)
         data_day = response_day.json()
@@ -39,8 +36,7 @@ def get_kombi_data():
         if events_day:
             all_events.extend(events_day)
             
-        # 2. Wenn heute keine Events gelistet sind, holen wir die nächsten Spiele der Top-Ligen
-        # 4328 = Premier League, 4331 = Bundesliga, 4332 = Serie A, 4335 = La Liga
+        # 2. Fallback auf Top-Ligen, falls heute nichts da ist
         if not all_events:
             league_ids = [4328, 4331, 4332, 4335]
             for lid in league_ids:
@@ -56,6 +52,11 @@ def get_kombi_data():
 
         results = []
         for i, ev in enumerate(all_events):
+            # WICHTIG: Nur Fußball/Soccer zulassen, Baseball & Co. komplett ignorieren!
+            sport_type = ev.get("strSport", "")
+            if sport_type != "Soccer":
+                continue
+
             match_id = str(ev.get("idEvent", i))
             date_event = ev.get("dateEvent", today_str)
             time_event = ev.get("strTime", "20:00")[:5]
@@ -64,7 +65,6 @@ def get_kombi_data():
             home = ev.get("strHomeTeam", "Heimteam")
             away = ev.get("strAwayTeam", "Gastteam")
             
-            # Algorithmus für realistische Quoten/Wahrscheinlichkeiten
             seed_val = (int(match_id) * 3) % 25 if match_id.isdigit() else 10
             prob_o25 = 65 + seed_val
             odd_o25 = round(2.00 - (prob_o25 / 100), 2)
@@ -88,7 +88,7 @@ def get_kombi_data():
                 "prob_team_goal": 80,
                 "fake_fav_team": home,
                 "odd_fake_fav": 2.10,
-                "fake_fav_reason": f"TheSportsDB: {home} vs {away}"
+                "fake_fav_reason": f"TheSportsDB Soccer: {home} vs {away}"
             })
             
         return results
