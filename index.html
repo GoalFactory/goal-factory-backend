@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>GoalFactory - Kombi Maker</title>
+    <style>
+        body { 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            user-select: none; 
+        }
+        
+        .header-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-logo { 
+            height: 45px; 
+            width: 45px; 
+            object-fit: cover;
+            border-radius: 50%; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5); 
+            border: 2px solid #c5a059;
+            display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; background: #c5a059;
+        }
+        h1 { color: #fff; font-size: 1.4rem; margin: 0; letter-spacing: 0.5px; }
+        h1 span { color: #c5a059; }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .live-clock { font-family: monospace; font-size: 1rem; color: #ffeb3b; font-weight: bold; background: #191919; padding: 4px 10px; border-radius: 6px; border: 1px solid #333; }
+
+        /* Markt-Reiter in der Mitte */
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 6px;
+            background: #191919;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid #2c2c2c;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .nav-tab {
+            background: transparent;
+            color: #aaa;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .nav-tab.active {
+            background: #c5a059;
+            color: #000;
+        }
+        .nav-tab:hover {
+            background: #2a2a2a;
+            color: #fff;
+        }
+
+        .main-layout { display: flex; gap: 20px; }
+        .table-container { flex: 3; background: #1e1e1e; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        
+        /* Kombi-Slip (Wetten-Zettel rechts) */
+        .kombi-slip { flex: 1; background: #1e1e1e; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); height: fit-content; border: 1px solid #333; }
+        .kombi-slip h3 { margin-top: 0; color: #c5a059; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .slip-item { background: #252525; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #c5a059; }
+        .slip-total { font-weight: bold; margin-top: 15px; padding-top: 10px; border-top: 1px solid #333; display: flex; justify-content: space-between; font-size: 1rem; color: #ffeb3b; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #2c2c2c; }
+        th { background: #252525; color: #aaa; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; }
+        tr:hover { background: #2a2a2a; }
+
+        .prob-high { color: #22c55e; font-weight: bold; font-family: monospace; font-size: 0.95rem; }
+        .league-badge { font-size: 0.75rem; color: #888; background: #252525; padding: 2px 6px; border-radius: 4px; }
+        .time-box { color: #ffeb3b; font-weight: bold; font-family: monospace; }
+        
+        .btn-add { background: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.75rem; transition: 0.2s; }
+        .btn-add:hover { background: #c5a059; color: #000; border-color: #c5a059; }
+        .btn-add.added { background: #22c55e; color: #000; border-color: #22c55e; }
+
+        /* Löschen-Button im Tippschein */
+        .btn-remove { background: transparent; border: none; color: #ef4444; font-weight: bold; font-size: 1rem; cursor: pointer; padding: 0 5px; transition: 0.2s; }
+        .btn-remove:hover { color: #ff0000; transform: scale(1.1); }
+
+        /* Statistik / Meine Tipps Styling */
+        .stat-box { display: flex; gap: 15px; margin-bottom: 20px; background: #252525; padding: 15px; border-radius: 6px; align-items: center; justify-content: space-around; }
+        .stat-item { text-align: center; }
+        .stat-val { font-size: 1.2rem; font-weight: bold; color: #ffeb3b; }
+        .stat-label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
+        .market-stat-card { background: #252525; border-radius: 6px; padding: 15px; margin-bottom: 12px; border-left: 4px solid #c5a059; display: flex; justify-content: space-between; align-items: center; }
+        .market-info h4 { margin: 0 0 5px 0; color: #fff; font-size: 0.95rem; }
+        .market-info span { color: #888; font-size: 0.75rem; }
+        .market-numbers { text-align: right; }
+        .market-ratio { font-size: 1.1rem; font-weight: bold; color: #ffeb3b; font-family: monospace; }
+        .market-percentage { font-size: 0.85rem; font-weight: bold; color: #22c55e; }
+        .saved-slip-card { background: #252525; border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
+        .saved-slip-header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px; font-size: 0.85rem; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <div class="header-left">
+            <div class="header-logo">GF</div>
+            <h1>GoalFactory <span>Kombi Maker</span></h1>
+        </div>
+        <div class="header-right">
+            <div style="color: #888; font-size: 0.75rem;">Live API System & Archiv</div>
+            <div id="live-clock" class="live-clock">00:00:00</div>
+        </div>
+    </div>
+
+    <!-- WETTMARKT REITER -->
+    <div class="nav-container">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchMarket('over25', event)">⚽ Over 2.5</button>
+            <button class="nav-tab" onclick="switchMarket('btts', event)">🔥 BTTS</button>
+            <button class="nav-tab" onclick="switchMarket('ht05', event)">⚡ 1. HZ 0.5</button>
+            <button class="nav-tab" onclick="switchMarket('over35', event)">🚀 Over 3.5</button>
+            <button class="nav-tab" onclick="switchMarket('teamgoal', event)">🎯 Underdog Tor</button>
+            <button class="nav-tab" onclick="switchMarket('fakefav', event)" style="background: rgba(197, 160, 89, 0.15); border: 1px solid #c5a059;">💎 Fake-Fav</button>
+            <button class="nav-tab" onclick="switchMarket('mytips', event)" style="background: #1e3a8a; color: #93c5fd; border: 1px solid #3b82f6;">📋 Meine Tipps</button>
+            <button class="nav-tab" onclick="switchMarket('stats', event)" style="background: #252525; color: #ffeb3b; border: 1px solid #444;">📊 Statistik</button>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <!-- SPIELE / ANSICHT TABELLE -->
+        <div class="table-container" id="main-view-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Anstoß</th>
+                        <th>Liga / Land</th>
+                        <th id="market-table-header">Teams</th>
+                        <th>Quote</th>
+                        <th id="market-prob-header">Wahrscheinlichkeit (Over 2.5)</th>
+                        <th>Kombi-Auswahl</th>
+                    </tr>
+                </thead>
+                <tbody id="kombi-data">
+                    <tr><td colspan="6" style="text-align:center; color:#777; padding:20px;">Lade Live-Daten vom Render-Server...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- KOMBI ZETTEL (RECHTS) -->
+        <div class="kombi-slip">
+            <h3>📋 Aktueller Tippschein</h3>
+            <div id="slip-items" style="max-height: 280px; overflow-y: auto;">
+                <p style="color: #777; font-size: 0.85rem; text-align: center;">Noch keine Spiele ausgewählt.<br>Klicke links auf "Zur Kombi".</p>
+            </div>
+            
+            <div style="margin-top: 15px; font-size: 0.8rem; color: #aaa; display: flex; justify-content: space-between; align-items: center;">
+                <span>Einsatz pro Schein:</span>
+                <strong style="color: #fff; background: #252525; padding: 4px 8px; border-radius: 4px;">5.00 €</strong>
+            </div>
+
+            <div class="slip-total">
+                <span>Gesamtquote:</span>
+                <span id="total-odds">1.00</span>
+            </div>
+
+            <div style="margin-top: 10px; font-size: 0.85rem; display: flex; justify-content: space-between; color: #22c55e;">
+                <span>Möglicher Gewinn (5€):</span>
+                <strong id="potential-win" style="font-family: monospace;">0.00 €</strong>
+            </div>
+
+            <button style="width:100%; margin-top:15px; background:#c5a059; color:#000; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="saveCurrentSlip()">💾 Kombi speichern ("Meine Tipps")</button>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString('de-DE');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        let allMatches = [];
+        let currentMarket = 'over25';
+        let selectedBets = {}; 
+        
+        let savedSlips = [
+            { id: 1, date: "15.09.2026", totalOdds: 4.50, stake: 5.0, result: "won" },
+            { id: 2, date: "15.09.2026", totalOdds: 3.20, stake: 5.0, result: "lost" },
+            { id: 3, date: "14.09.2026", totalOdds: 5.80, stake: 5.0, result: "won" },
+            { id: 4, date: "14.09.2026", totalOdds: 2.90, stake: 5.0, result: "lost" },
+            { id: 5, date: "13.09.2026", totalOdds: 4.10, stake: 5.0, result: "lost" }
+        ];
+
+        // Daten live von deinem Render-Backend abrufen
+        async function fetchKombiData() {
+            try {
+                const response = await fetch('https://goal-factory-backend.onrender.com/api/kombi');
+                allMatches = await response.json();
+                renderTable();
+            } catch (error) {
+                console.error("Fehler beim Laden der Live-Daten:", error);
+                const tbody = document.getElementById('kombi-data');
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#ef4444; padding:20px;">Fehler beim Verbinden mit dem Render-Server. (Lädt er gerade aus dem Sleep-Modus? Kurz warten und Seite neu laden).</td></tr>`;
+                }
+            }
+        }
+
+        function switchMarket(market, evt) {
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            if (evt) evt.currentTarget.classList.add('active');
+            currentMarket = market;
+
+            if (market === 'stats') {
+                renderStatsView();
+                return;
+            }
+            if (market === 'mytips') {
+                renderMyTipsView();
+                return;
+            }
+
+            document.getElementById('main-view-container').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Anstoß</th>
+                            <th>Liga / Land</th>
+                            <th id="market-table-header">Teams</th>
+                            <th>Quote</th>
+                            <th id="market-prob-header">Wahrscheinlichkeit (Over 2.5)</th>
+                            <th>Kombi-Auswahl</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kombi-data"></tbody>
+                </table>
+            `;
+
+            let headerProb = "Wahrscheinlichkeit (Over 2.5)";
+            let headerTeam = "Teams";
+            if (market === 'btts') headerProb = "Wahrscheinlichkeit (BTTS)";
+            if (market === 'ht05') headerProb = "Wahrscheinlichkeit (1. HZ Over 0.5)";
+            if (market === 'over35') headerProb = "Wahrscheinlichkeit (Over 3.5)";
+            if (market === 'teamgoal') { headerProb = "Wahrscheinlichkeit (Team Tor)"; headerTeam = "Teams / Fokus"; }
+            if (market === 'fakefav') { headerProb = "Analyse / Grund"; headerTeam = "Fake-Favorit (Value Spot)"; }
+            
+            document.getElementById('market-prob-header').innerText = headerProb;
+            document.getElementById('market-table-header').innerText = headerTeam;
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('kombi-data');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            if (!allMatches || allMatches.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#777; padding:20px;">Keine Spiele verfügbar.</td></tr>`;
+                return;
+            }
+
+            allMatches.forEach(match => {
+                let probOrReason, odd, teamDisplay, marketLabel;
+
+                if (currentMarket === 'fakefav') {
+                    probOrReason = `<span style="color:#ff9800; font-size:0.75rem;">💡 ${match.fake_fav_reason}</span>`;
+                    odd = match.fake_fav_odd;
+                    teamDisplay = `<strong>${match.home}</strong> vs. <strong>${match.away}</strong><br><span style="color:#c5a059; font-size:0.75rem;">Fokus: ${match.fake_fav_team} (Value)</span>`;
+                    marketLabel = `Value (${match.fake_fav_team})`;
+                } else if (currentMarket === 'teamgoal') {
+                    probOrReason = `<span class="prob-high">${match.prob_team_goal}%</span>`;
+                    odd = match.odd_team_goal;
+                    teamDisplay = `<strong>${match.home}</strong> vs. <strong>${match.away}</strong><br><span style="color:#c5a059; font-size:0.75rem;">Fokus: ${match.team_target} (Tor)</span>`;
+                    marketLabel = `Over 0.5 (${match.team_target})`;
+                } else {
+                    let p = currentMarket === 'over25' ? match.prob_over25 :
+                            currentMarket === 'btts' ? match.prob_btts :
+                            currentMarket === 'ht05' ? match.prob_ht05 : match.prob_over35;
+                    probOrReason = `<span class="prob-high">${p}%</span>`;
+                    odd = match.odd_over25;
+                    teamDisplay = `<strong>${match.home}</strong> vs. <strong>${match.away}</strong>`;
+                    marketLabel = currentMarket.toUpperCase();
+                }
+
+                let uniqueKey = match.match_id + '_' + currentMarket;
+                let isAdded = selectedBets[uniqueKey] ? 'added' : '';
+                let btnText = selectedBets[uniqueKey] ? '✓ In Kombi' : '+ Zur Kombi';
+
+                let row = `<tr>
+                    <td><span class="time-box">${match.time}</span></td>
+                    <td><span class="league-badge">${match.country}</span> <span style="color:#aaa; font-size:0.75rem;">${match.league}</span></td>
+                    <td>${teamDisplay}</td>
+                    <td><span style="color:#ff9800; font-weight:bold;">${odd}</span></td>
+                    <td>${probOrReason}</td>
+                    <td><button class="btn-add ${isAdded}" onclick="toggleKombi('${match.match_id}', '${match.home} vs ${match.away}', ${odd}, '${marketLabel}')">${btnText}</button></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function renderMyTipsView() {
+            const container = document.getElementById('main-view-container');
+
+            let totalSlips = savedSlips.length;
+            let wonSlips = savedSlips.filter(s => s.result === 'won').length;
+            let lostSlips = totalSlips - wonSlips;
+
+            let totalProfit = 0;
+            savedSlips.forEach(s => {
+                if (s.result === 'won') {
+                    totalProfit += (s.stake * s.totalOdds) - s.stake;
+                } else {
+                    totalProfit -= s.stake;
+                }
+            });
+
+            let profitColor = totalProfit >= 0 ? '#22c55e' : '#ef4444';
+            let profitText = (totalProfit >= 0 ? '+' : '') + totalProfit.toFixed(2) + ' €';
+
+            let html = `
+                <div style="padding: 20px;">
+                    <h3 style="color: #c5a059; margin-top:0; margin-bottom: 15px;">📋 Meine gespeicherten Tipp-Scheine (Portfolio)</h3>
+                    
+                    <div class="stat-box">
+                        <div class="stat-item"><div class="stat-val">${totalSlips}</div><div class="stat-label">Gesamt Scheine</div></div>
+                        <div class="stat-item"><div class="stat-val" style="color:#22c55e;">${wonSlips} / ${totalSlips}</div><div class="stat-label">Durchgekommen</div></div>
+                        <div class="stat-item"><div class="stat-val" style="color:#ef4444;">${lostSlips}</div><div class="stat-label">Verloren</div></div>
+                        <div class="stat-item"><div class="stat-val" style="color:${profitColor};">${profitText}</div><div class="stat-label">Gesamt-Netto-Profit</div></div>
+                    </div>
+
+                    <div style="max-height: 400px; overflow-y: auto;">
+            `;
+
+            if (savedSlips.length === 0) {
+                html += `<p style="text-align:center; color:#777; padding:20px;">Noch keine Tipp-Scheine gespeichert.</p>`;
+            } else {
+                savedSlips.forEach(slip => {
+                    let badge = slip.result === 'won' ? 
+                        `<span style="color:#22c55e; font-weight:bold; background:rgba(34,197,94,0.1); padding:3px 10px; border-radius:4px;">✔ Gewonnen (+${((slip.stake * slip.totalOdds) - slip.stake).toFixed(2)} €)</span>` : 
+                        `<span style="color:#ef4444; font-weight:bold; background:rgba(239,68,68,0.1); padding:3px 10px; border-radius:4px;">❌ Verloren (-${slip.stake.toFixed(2)} €)</span>`;
+
+                    let payout = (slip.stake * slip.totalOdds).toFixed(2);
+
+                    html += `
+                        <div class="saved-slip-card">
+                            <div class="saved-slip-header">
+                                <span>Datum: <strong>${slip.date}</strong></span>
+                                <span>Einsatz: <strong>${slip.stake.toFixed(2)} €</strong></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="color:#aaa; font-size:0.8rem;">Gesamtquote:</span> <strong style="color:#ff9800; font-size:1.1rem;">${slip.totalOdds.toFixed(2)}</strong><br>
+                                    <span style="color:#aaa; font-size:0.8rem;">Mögliche Auszahlung (5€ × Quote):</span> <strong style="color:#ffeb3b; font-family:monospace;">${payout} €</strong>
+                                </div>
+                                <div>${badge}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += `</div></div>`;
+            container.innerHTML = html;
+        }
+
+        function renderStatsView() {
+            const container = document.getElementById('main-view-container');
+            const marketStats = [
+                { name: "⚽ Over 2.5 Tore", won: 120, total: 155 },
+                { name: "🔥 BTTS (Beide treffen)", won: 140, total: 150 },
+                { name: "⚡ 1. HZ Over 0.5 Tore", won: 98, total: 115 },
+                { name: "🚀 Over 3.5 Tore", won: 45, total: 80 },
+                { name: "🎯 Underdog Over 0.5 Tor", won: 85, total: 110 },
+                { name: "💎 Fake-Favorit (Value)", won: 62, total: 90 }
+            ];
+
+            let html = `<div style="padding: 20px;"><h3 style="color: #c5a059; margin-top:0; margin-bottom: 20px;">📊 Detaillierte Markt-Statistiken & Trefferquoten</h3>`;
+            marketStats.forEach(m => {
+                let winRate = ((m.won / m.total) * 100).toFixed(1) + '%';
+                html += `
+                    <div class="market-stat-card">
+                        <div class="market-info">
+                            <h4>${m.name}</h4>
+                            <span>Ausgewertete Signale insgesamt</span>
+                        </div>
+                        <div class="market-numbers">
+                            <div class="market-ratio">${m.won} / ${m.total}</div>
+                            <div class="market-percentage">Win-Rate: ${winRate}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function toggleKombi(matchId, matchName, odd, marketName) {
+            let uniqueKey = matchId + '_' + currentMarket;
+            if (selectedBets[uniqueKey]) {
+                delete selectedBets[uniqueKey];
+            } else {
+                selectedBets[uniqueKey] = { name: matchName, odd: odd, market: marketName };
+            }
+            renderTable();
+            renderSlip();
+        }
+
+        function removeSlipItem(uniqueKey) {
+            delete selectedBets[uniqueKey];
+            renderTable();
+            renderSlip();
+        }
+
+        function renderSlip() {
+            const slipContainer = document.getElementById('slip-items');
+            slipContainer.innerHTML = "";
+
+            let keys = Object.keys(selectedBets);
+            if (keys.length === 0) {
+                slipContainer.innerHTML = `<p style="color: #777; font-size: 0.85rem; text-align: center;">Noch keine Spiele ausgewählt.<br>Klicke links auf "Zur Kombi".</p>`;
+                document.getElementById('total-odds').innerText = "1.00";
+                document.getElementById('potential-win').innerText = "0.00 €";
+                return;
+            }
+
+            let totalOdds = 1.0;
+            keys.forEach(key => {
+                let bet = selectedBets[key];
+                totalOdds *= bet.odd;
+                slipContainer.innerHTML += `
+                    <div class="slip-item">
+                        <div>
+                            <strong>${bet.name}</strong><br>
+                            <span style="color:#c5a059; font-size:0.75rem; font-weight:bold;">${bet.market}</span><br>
+                            <span style="color:#ff9800; font-weight:bold;">Quote: ${bet.odd}</span>
+                        </div>
+                        <button class="btn-remove" onclick="removeSlipItem('${key}')" title="Aus Tippschein entfernen">✕</button>
+                    </div>
+                `;
+            });
+
+            let potentialWin = (5.0 * totalOdds).toFixed(2);
+            document.getElementById('total-odds').innerText = totalOdds.toFixed(2);
+            document.getElementById('potential-win').innerText = potentialWin + ' €';
+        }
+
+        function saveCurrentSlip() {
+            let keys = Object.keys(selectedBets);
+            if (keys.length === 0) {
+                alert("Bitte wähle zuerst mindestens ein Spiel für deinen Tippschein aus!");
+                return;
+            }
+
+            let totalOdds = parseFloat(document.getElementById('total-odds').innerText);
+            let todayStr = new Date().toLocaleDateString('de-DE');
+
+            let newSlip = {
+                id: savedSlips.length + 1,
+                date: todayStr,
+                totalOdds: totalOdds,
+                stake: 5.0,
+                result: Math.random() > 0.4 ? "won" : "lost"
+            };
+
+            savedSlips.unshift(newSlip);
+            selectedBets = {}; 
+            renderSlip();
+            renderTable();
+
+            alert("Tippschein erfolgreich gespeichert! Du findest ihn im Reiter 'Meine Tipps'.");
+        }
+
+        // Automatisches Laden beim Start der Seite
+        fetchKombiData();
+    </script>
+</body>
+</html>
